@@ -1,0 +1,52 @@
+name: Bug report
+description: Report a reproducible problem in Orbit
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include credentials, personal data, client information, or confidential legal material.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the behavior and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide the smallest reliable sequence of steps.
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: Orbit version or commit
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Web application
+        - API
+        - Database or migration
+        - Documentation
+        - Development tooling
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser, operating system, Bun version, and deployment type where relevant.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety checks
+      options:
+        - label: I removed secrets and confidential data from this report.
+          required: true
+        - label: I searched for an existing issue describing this problem.
+          required: true

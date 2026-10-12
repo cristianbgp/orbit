@@ -1,0 +1,1 @@
+ALTER TABLE "project_task" ADD COLUMN "planned_start_date" date;

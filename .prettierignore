@@ -1,0 +1,11 @@
+**/node_modules/
+**/dist/
+**/coverage/
+apps/api/drizzle/meta/
+apps/api/src/help-assistant/blueprint-documents.generated.ts
+apps/web/src/lib/api/generated/
+docs/blueprint/
+docs/superpowers/
+bun.lock
+apps/api/bun.lock
+apps/web/bun.lock

@@ -1,0 +1,7 @@
+procs:
+  web:
+    shell: "bun --env-file=.env run dev"
+    cwd: "<CONFIG_DIR>/apps/web"
+  api:
+    shell: "bun --env-file=.env run dev"
+    cwd: "<CONFIG_DIR>/apps/api"
