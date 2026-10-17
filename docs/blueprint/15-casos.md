@@ -1,0 +1,105 @@
+# Casos
+
+## Propósito y alcance implementado
+
+`Cases` es un módulo independiente para registrar procesos legales y tributarios del estudio. Un caso pertenece a un cliente y a la organización activa. No está relacionado con Projects y no contiene tareas, timeline, documentos ni comentarios. Sus novedades son anotaciones procesales manuales y sus eventos representan fechas procesales propias del caso.
+
+```text
+Organization → Client → Case
+                    ├─ CaseAssignments
+                    ├─ CaseUpdates
+                    ├─ CaseActions
+                    ├─ CaseEvents
+                    └─ CaseActivities
+```
+
+La base usa `legal_case` para evitar la palabra reservada SQL `CASE`; producto, API y TypeScript usan `case`/`cases`.
+
+## Registro y ciclo de vida
+
+Cliente, identificación manual y estado forman el registro mínimo. La creación solo exige seleccionar cliente e ingresar identificación porque `status` comienza como `in_progress` (**En trámite**). El estado puede pasar a `concluded` (**Concluido**) únicamente con resultado `founded` (**Fundada**), `unfounded` (**Infundada**) o `inadmissible` (**Improcedente**). Un caso en trámite no tiene resultado.
+
+El archivo es independiente del estado jurídico. Un caso archivado conserva equipo y actividad, queda en modo de solo lectura y debe restaurarse antes de modificarse. No existe eliminación pública.
+
+Campos opcionales: tipo, subtipo, etapa procesal actual, entidad, expediente, tributo, período, importe/moneda, materia controvertida y resolución impugnada. El expediente solo aplica cuando se selecciona cualquier etapa; quitar la etapa también elimina el expediente. El demandante aplica únicamente al tipo Judicial y es una opción estructurada entre el cliente del caso y SUNAT. En un caso judicial nuevo se usa el cliente por defecto; en cualquier otro tipo permanece vacío. No admite texto libre y, si cambia el nombre del cliente, su presentación se actualiza automáticamente.
+
+## Clasificación fija
+
+- Tipos: Administrativo, Judicial, Constitucional y Otros.
+- Subtipos: los aprobados en `case-catalog.ts`; cada uno pertenece a un solo tipo.
+- Etapas: solo las 15 entregadas. El valor técnico lleva prefijo de tipo para evitar colisiones. Se conserva únicamente la etapa actual; los cambios quedan en actividad.
+- Entidades: Tribunal Fiscal, SUNAT, MEF, Municipalidad, SAT, MINEM y Poder Judicial.
+- Tributos: IGV, IR, IR ND, ITAN, OTR y PREDIAL.
+- Monedas: PEN y USD.
+
+No existen tablas ni administración de catálogos. `/api/cases/options` entrega las constantes del backend y no se infieren opciones ausentes.
+
+## Período e importe
+
+El período no es texto libre. Admite año, mes o rango de meses. Se normaliza con el primer día de cada mes en columnas PostgreSQL `date`; año equivale a enero-diciembre, mes repite inicio/fin y rango permite cruzar años. La API de escritura usa `YYYY-MM` y las consultas pueden usar solapamiento de intervalos.
+
+El importe usa `numeric(18,2)`. Importe y moneda se completan juntos o permanecen ambos vacíos.
+
+## Equipo, seguimiento y actividad
+
+Un caso mantiene dos listas independientes: **Equipo del caso** (`responsibility=member`) para quienes participan en su trabajo y **Seguimiento del caso** (`responsibility=follower`) para quienes siguen su estado y novedades. Cada lista admite cero, una o varias personas; una misma persona puede estar activa en ambas. Ninguna concede permisos y ambas conservan snapshots e historial al terminar. En creación, detalle, configuración, presentación, cartera y candidatos la posición profesional es visible y las personas se agrupan en el orden Socio, Senior, Junior, Asistente, Practicante y Sin posición. El historial permanece disponible en la API, pero la interfaz no muestra por ahora la sección de participación anterior.
+
+Los filtros por miembro y el atajo **Mis casos** consideran participación activa en cualquiera de las dos listas. En cambio, el encargado de una acción debe pertenecer activamente al **Equipo del caso**; estar únicamente en Seguimiento no basta.
+
+Crear, editar, cambiar estado/resultado/etapa, archivar, restaurar y añadir o retirar miembros genera `case_activity` inmutable dentro de la misma transacción. Las actualizaciones guardan valores anteriores y nuevos; cliente, período e importe conservan snapshots completos y legibles de su grupo lógico. El detalle del caso y la página global Actividad reutilizan el mismo renderer: traducen catálogos, representan valores vacíos como **Sin definir**, muestran estado y resultado con badges y enlazan identidades que siguen activas. Las acciones de dominio conocidas se expresan de forma semántica —por ejemplo, **convirtió la novedad en antecedente**— en vez de degradarse a un mensaje genérico de edición. Las actualizaciones de varios campos se presentan como filas estructuradas; las primeras tres quedan visibles y el resto se puede expandir. Los instantes de actividad respetan la zona horaria del estudio; las fechas calendario permanecen estables. La página global mezcla Projects y Cases por instante y enlaza al origen correcto.
+
+## Eventos del caso
+
+Los eventos representan fechas procesales que requieren seguimiento. Cada registro contiene título, tipo, fecha y descripción opcional. Los tipos disponibles son `oral_argument` (**Informe oral**), `interview` (**Entrevista**) y `other` (**Otro**). La fecha no se deriva ni se restringe usando el período del caso; se almacena como PostgreSQL `date`, mientras `createdAt` y `updatedAt` usan `timestamptz`.
+
+`/api/cases/:caseId/events` permite listar con paginación, crear, editar y eliminar. `GET /api/case-events/calendar` agrega una lectura organizacional para un rango inclusivo de hasta 42 días: devuelve cada evento con el contexto mínimo de caso y cliente, acepta los mismos filtros de estado, búsqueda, tipo, cliente y miembros de la cartera, excluye casos archivados y limita la respuesta a 500 registros con una señal `truncated`. Todas las operaciones verifican membresía y usan `organizationId`; las rutas individuales usan además `caseId`. Un caso archivado conserva la lectura individual, pero rechaza mutaciones y no participa del calendario. Editar y eliminar exigen el `updatedAt` observado y responden conflicto si otra sesión modificó el evento. La eliminación es definitiva para el registro operativo, mientras `case.event_deleted` conserva su snapshot en la actividad inmutable. Creación y edición generan `case.event_created` y `case.event_updated`; la edición registra valores anteriores y nuevos.
+
+En Case Detail, **Eventos** ocupa una sección completa después de Información y Equipo y antes de la grilla Novedades/Acciones. Su descripción explica que reúne fechas como informes orales, entrevistas u otros eventos. La lista compacta ordena por fecha y muestra título y descripción; cada tipo se representa mediante un icono con tooltip, sin repetir una etiqueta textual. El Sheet contextual identifica el caso y cliente, permite elegir el tipo e inicia un evento nuevo como **Informe oral**. Cambiar el tipo propone el título correspondiente mientras el usuario no haya personalizado ese texto; el título permanece editable. Eliminar requiere confirmación y un fallo permanece visible dentro del diálogo sin cerrarlo. Los casos archivados mantienen la lista visible sin controles de escritura. Los eventos no se integran todavía con búsqueda global, Mi trabajo, dashboards ni notificaciones.
+
+## Novedades del caso
+
+Las novedades registran manualmente hechos procesales relevantes, por ejemplo la presentación de un recurso o la notificación de una sentencia. Cada entrada contiene una fecha calendario, una descripción y una clasificación técnica `kind`: `update` (**Novedad**) o `background` (**Antecedente**). La fecha usa PostgreSQL `date` y no cambia según zona horaria. La descripción se normaliza sin espacios externos, debe contener texto y admite hasta 5000 caracteres. Toda entrada nueva comienza como novedad.
+
+La clasificación se puede cambiar individualmente en ambos sentidos desde la edición. El detalle mantiene las novedades visibles y agrupa los antecedentes en un disclosure **Antecedentes · N**, cerrado por defecto. La conversión masiva no pertenece a un caso individual: `/cases` ofrece una acción global secundaria con confirmación que muestra cuántas novedades y cuántos casos afectará. Convierte todas las novedades activas de los casos no archivados de la organización, independientemente de los filtros o del tab visible. La frontera de servicio queda preparada para restringir ese permiso más adelante. La cartera `/cases`, sus contadores y sus vistas previas solo consideran novedades, de modo que los antecedentes permanecen como contexto histórico del detalle.
+
+Se pueden crear, editar, archivar y restaurar. No existe eliminación definitiva. Archivo y clasificación son dimensiones independientes: el listado archivado conserva novedades y antecedentes. Los listados tienen paginación y se ordenan por fecha del hecho, instante de creación e identificador, siempre de más reciente a más antiguo. Sus filas compactas priorizan fecha y descripción, mientras un avatar pequeño con tooltip conserva la identidad del creador sin añadir una frase redundante.
+
+Cada mutación genera en la misma transacción una entrada inmutable `case_activity`: `case.update_created`, `case.update_changed`, `case.update_archived` o `case.update_restored`. La edición guarda fecha, descripción y clasificación anteriores y nuevas. La conversión masiva genera una actividad `case.updates_moved_to_background` por cada caso afectado, con el total convertido en ese caso, en lugar de una entrada por novedad. La interfaz muestra esos cambios estructurados tanto en el caso como en la actividad global. Las escrituras individuales requieren la versión `updatedAt` observada para evitar sobrescribir cambios concurrentes.
+
+Cualquier miembro activo puede operar novedades. Un caso archivado permite consultarlas, pero bloquea todas sus mutaciones hasta que se restaure.
+
+## Acciones del caso
+
+Las acciones representan próximos pasos concretos, distintos de las novedades históricas. Cada acción contiene una descripción de hasta 1000 caracteres, estado **Pendiente** o **Completada** y, opcionalmente, un único encargado. No tiene fecha límite, prioridad, comentarios ni múltiples encargados. Al crearla no se selecciona automáticamente al usuario actual.
+
+El encargado debe ser un miembro activo del equipo del caso. Si luego deja el caso o el estudio, la acción conserva su identidad histórica, pero deja de aparecer como trabajo personal activo. Cualquier miembro activo del estudio puede crear, editar, asignar, completar, reabrir, archivar o restaurar acciones. Un caso archivado queda en modo de solo lectura; un caso concluido todavía admite acciones.
+
+En el detalle, **Novedades** y **Acciones** se apilan en ese orden en móvil; desde desktop forman dos columnas independientes, con Novedades a la izquierda y Acciones a la derecha. Pendientes y completadas comparten una sola lista activa, siempre ordenada por creación de más reciente a más antigua; el estado se cambia con un Select compacto semejante al de las tareas. **Ver archivadas** abre una vista secundaria recuperable, no un tab permanente. El encargado se elige con Command/Popover entre miembros activos del caso, mostrando avatar, alias, nombre y posición. Cada escritura exige el `updatedAt` observado y genera actividad inmutable dentro de la misma transacción. `/api/cases/:caseId/actions` expone list/create/update/complete/reopen/archive/restore y acepta el alcance combinado `status=active`; no existe eliminación definitiva.
+
+**Mi trabajo** incorpora **Acciones de casos** como tercer tab, después de Mis tareas y Bajo mi supervisión. Muestra solo acciones asignadas al usuario actual y cuya participación en el caso sigue activa, agrupadas por cliente y caso. Permite búsqueda por acción, caso o cliente, filtros por cliente, caso y tipo, inclusión opcional de completadas y cambio de estado inline. Al no tener fechas, estas acciones no se mezclan con Hoy, Esta semana o A futuro.
+
+## Acceso y API
+
+Cualquier miembro activo del estudio puede listar, ver, crear, editar, archivar/restaurar y gestionar miembros. Todas las operaciones se limitan a la organización activa; un id de otro tenant responde como inexistente.
+
+Rutas principales: listado plano, listado agrupado por cliente, presentación semanal, opciones, create/get/update, archive/restore, assignments/candidates/add/end, updates, actions, events y activity. `GET /api/cases/presentation` entrega en una sola lectura acotada los casos agrupados por cliente con período, expediente, etapa, equipo, novedades, acciones y eventos; acepta filtros repetibles por estado, cliente, tipo y miembro, además de inclusión opcional de acciones completadas y eventos pasados. Las novedades exponen list/create/update/archive/restore bajo `/api/cases/:caseId/updates` y filtro opcional por clasificación. La conversión organizacional usa `GET /api/cases/updates/move-to-background/preview` para obtener su alcance y `POST /api/cases/updates/move-to-background` para ejecutarla; las acciones añaden complete/reopen. Solo los eventos admiten `DELETE`, preservando su snapshot en actividad.
+
+## Interfaz
+
+La sidebar incluye **Casos**. `/cases` sigue el marco de Proyectos: búsqueda debounced, total, tabs de ciclo de vida (**En trámite**, **Concluidos** y **Archivados**) y grupos expandibles por cliente. **Mis casos** funciona como atajo al filtro de miembros: al activarlo sustituye la selección de miembros por el usuario actual y al desactivarlo retira ese filtro, conservando los demás criterios. Para casos en trámite o concluidos ofrece **Lista** y **Calendario**; los archivados conservan únicamente Lista. La vista y el mes (`display=calendar&month=YYYY-MM`) se guardan en la URL. El calendario reutiliza la búsqueda y los filtros activos, presenta una grilla mensual de lunes a domingo en desktop y una agenda de días con eventos en móvil. Cada informe oral muestra su título y, como contexto visible, **cliente · caso**; usa un color estable por caso, conserva el contexto completo en tooltip y abre el Sheet para editar o eliminar. Si un día supera cuatro eventos, **+N más** abre un Sheet diario con la lista completa. Hoy, fines de semana y días fuera del mes se distinguen visualmente; los cambios de mes conservan el calendario anterior mientras llega la nueva consulta. Tipo, cliente y miembro son filtros multiselección combinables, persistidos en la URL y presentados con popover en desktop o drawer en pantallas compactas. Cada fila separa identificación, período, expediente, etapa y equipo; el tributo se consulta en el detalle. Debajo incluye controles independientes **Novedades · N** y **Acciones · N**: forman una grilla de dos columnas en desktop, con Novedades a la izquierda, y se apilan en ese orden en móvil. Cada control ofrece además una acción `+` para registrar el elemento directamente desde la cartera, salvo en casos archivados. Esta abre el mismo Sheet del detalle con un bloque contextual enlazable que identifica caso y cliente; al guardar actualiza contadores, abre la vista previa correspondiente y presenta el nuevo registro. Las filas de novedad permiten editar; las de acción alinean estado, descripción, encargado y edición, y cambian estado con el selector icon-only compartido. Los miembros necesarios para asignar una acción se cargan solo al abrir su Sheet. Cada contenedor conserva su altura compacta cuando el panel vecino se expande. Los conteos excluyen registros archivados y antecedentes. Cada panel carga recién al abrirse, enseña los tres registros más recientes y permite mostrar todos inline sin afectar al otro panel; un fallo posterior conserva lo ya cargado y ofrece reintento. Las acciones mantienen el encargado junto a su descripción. El menú secundario de la cabecera contiene la conversión global a antecedentes; su confirmación carga el alcance real de toda la organización y no se limita por filtros. `/cases/new` separa Datos principales, Clasificación, Período e importe, Contenido y Miembros iniciales. Datos principales contiene solo identificación y cliente. Clasificación muestra el expediente después de elegir una etapa y muestra Demandante —un Select entre el cliente elegido y SUNAT— únicamente para el tipo Judicial. El detalle comparte la jerarquía visual de Project Detail: una tarjeta-resumen con acento, estado, tipo, identificación, cliente y situación procesal antecede a la información completa y el equipo; después presenta Eventos a todo lo ancho, Novedades a la izquierda y Acciones a la derecha en desktop, y finalmente Actividad. En móvil conserva el orden Eventos, Novedades, Acciones y Actividad. La identidad del equipo reutiliza avatar, alias, correo, posición y enlace al perfil de Proyectos; la posición también estructura visualmente todos los selectores y listados de miembros. Configurar separa **General** y **Equipo** en pestañas; la gestión permite buscar, seleccionar, retirar con confirmación y consultar participación anterior sin alterar permisos.
+
+La interfaz vigente amplía esas superficies con **Seguimiento del caso**: las filas de cartera y los resúmenes de presentación reúnen Equipo y Seguimiento en una sola celda compacta, con encabezados subrayados, un separador entre responsabilidades y un único desplazamiento horizontal cuando hace falta. `/cases/new` permite definirlos inicialmente y Configurar usa las pestañas **General** y **Personas**, con gestores independientes para cada responsabilidad. La misma persona puede aparecer en ambos grupos sin duplicarse dentro de uno solo.
+
+Los catálogos de clientes y miembros recorren todas sus páginas antes de presentarse en formularios y filtros. Una búsqueda en cualquiera de los selectores de personas conserva a quienes ya estaban seleccionados. Los formularios distinguen carga y error de catálogos, permiten reintentar y no habilitan escrituras con opciones incompletas.
+
+La búsqueda cubre identificación, expediente, cliente, demandante, materia controvertida y resolución impugnada, ignorando mayúsculas y diacríticos.
+
+La búsqueda global mediante `Ctrl/⌘ K` incluye los casos no archivados por identificación, expediente, cliente, materia controvertida y resolución impugnada. Cada resultado abre el detalle correspondiente; el estado vacío del Command también permite navegar a **Casos** o iniciar **Nuevo caso**.
+
+## Presentación semanal
+
+El menú secundario de Casos abre `/cases/presentation`, una superficie continua para la reunión semanal del estudio. No crea una presentación persistida ni una fotografía separada: lee la cartera vigente y permite modificarla en vivo. Inicialmente incluye casos **En trámite**, agrupados alfabéticamente por cliente, con todos los clientes y casos expandidos. Cada resumen alinea identificación, estado, tipo, período, expediente, etapa y equipo por posición; debajo muestra todas las novedades activas, los tres antecedentes más recientes, las acciones pendientes y los eventos futuros. Los antecedentes se ordenan del más reciente al más antiguo y **Ver todos los antecedentes** permite expandir su historial completo inline sin salir de la presentación. En desktop Novedades —incluido su contexto de antecedentes— queda a la izquierda, Acciones a la derecha y Eventos ocupa el ancho completo; en móvil se apilan.
+
+La ruta entra siempre en una superficie de presentación de viewport completo, con el shell de navegación oculto. **Volver a casos** y **Salir de presentación** regresan explícitamente a la cartera; esta última acción también abandona el fullscreen nativo cuando está activo. La barra fija permite contraer o expandir toda la cartera y filtrar por cliente, tipo o miembro. **Contenido adicional** agrupa en un solo popover las opciones Casos concluidos, Acciones completadas y Eventos pasados, y muestra cuántas están activas. Los filtros y estas opciones se conservan en la URL; el estado de expansión y la pantalla completa nativa opcional son transitorios. No existe un estado adicional para activar el modo presentación.
+
+Durante la reunión se reutilizan los mismos Sheets de Casos para crear o editar novedades, antecedentes, acciones y eventos. Las acciones cambian pendiente/completada desde el selector compacto. **Editar caso** abre, sin abandonar la presentación, un Sheet amplio con pestañas **General** y **Equipo** que reutiliza los formularios canónicos; el detalle completo solo se consulta al abrirlo y el archivado permanece fuera de este flujo. Tras cada escritura se invalida el agregado y se conserva el documento anterior mientras llega su versión actualizada. El backend calcula la frontera entre eventos futuros y pasados usando la zona horaria de la organización, excluye casos y registros archivados, y devuelve una advertencia explícita si se alcanza algún límite de seguridad; novedades y antecedentes se resuelven mediante consultas agregadas separadas y la interfaz nunca realiza una consulta adicional por cada caso durante la carga inicial.

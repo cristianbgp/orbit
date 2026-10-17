@@ -1,0 +1,12 @@
+# Use Railpack for best Bun support (no Dockerfile required).
+# See https://docs.railway.app/guides/build-configuration#railpack
+[build]
+builder = "RAILPACK"
+
+[build.env]
+BUN_VERSION = "1.4.0"
+
+# Run DB migrations before each deploy (service must have DATABASE_URL, e.g. from linked Postgres).
+# See https://docs.railway.com/config-as-code
+[deploy]
+preDeployCommand = ["bun run --filter orbit-api db:migrate"]

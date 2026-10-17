@@ -1,0 +1,45 @@
+{
+  "name": "orbit-api",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "bun": "1.4.x"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "bun --env-file=.env --watch src/index.ts",
+    "start": "bun --env-file=.env src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "help:generate": "bun scripts/generate-help-corpus.ts",
+    "auth:generate": "bun --env-file=.env run auth generate --config src/auth/runtime.ts --output src/db/auth-schema.ts --yes && bun src/auth/preserve-auth-schema-policy.ts",
+    "auth:recovery-link": "bun --env-file=.env src/account-recovery/recovery-cli-entry.ts",
+    "db:create": "createdb --host=localhost --port=5432 --username=postgres orbit",
+    "db:generate": "bun --env-file=.env run drizzle-kit generate",
+    "db:migrate": "bun --env-file=.env run drizzle-kit migrate",
+    "db:push": "bun --env-file=.env run drizzle-kit push",
+    "db:seed": "bun --env-file=.env src/seed.ts",
+    "db:setup": "bun run db:create && bun run db:migrate"
+  },
+  "dependencies": {
+    "@better-auth/drizzle-adapter": "1.7.7",
+    "@hono/swagger-ui": "0.6.1",
+    "@hono/zod-openapi": "1.6.3",
+    "better-auth": "1.7.7",
+    "drizzle-orm": "0.45.4",
+    "hono": "4.13.13",
+    "postgres": "3.4.9",
+    "zod": "4.6.6"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.9",
+    "@types/bun": "1.4.3",
+    "@types/node": "26.6.5",
+    "auth": "1.7.7",
+    "drizzle-kit": "0.31.11",
+    "typescript": "7.0.2",
+    "vitest": "4.1.11"
+  }
+}

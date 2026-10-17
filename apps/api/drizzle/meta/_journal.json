@@ -1,0 +1,223 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1785793803788,
+      "tag": "0000_auth_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785904581775,
+      "tag": "0001_organization_onboarding",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785987035218,
+      "tag": "0002_basic_clients",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785995324814,
+      "tag": "0003_projects_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786024061969,
+      "tag": "0004_project_stages",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786049196506,
+      "tag": "0005_clear_red_hulk",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786054900593,
+      "tag": "0006_gray_typhoid_mary",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786068997987,
+      "tag": "0007_silent_arachne",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786074965041,
+      "tag": "0008_yummy_slipstream",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786078343805,
+      "tag": "0009_bizarre_dragon_lord",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786135733304,
+      "tag": "0010_fancy_killer_shrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1786142198069,
+      "tag": "0011_add_oral_argument_project_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1786330800000,
+      "tag": "0012_add_project_lifecycle",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1786532400000,
+      "tag": "0013_project_period_events_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1786554000000,
+      "tag": "0014_prepare_project_date_contract",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1786574002245,
+      "tag": "0015_drop_legacy_project_dates",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1786584094837,
+      "tag": "0016_temporal_data_contract",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1786640281781,
+      "tag": "0017_feature_flags",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1786723396823,
+      "tag": "0018_user_avatar_color",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1786752218831,
+      "tag": "0019_studio_member_position",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1786773383704,
+      "tag": "0020_remove_cancelled_project_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1786825966189,
+      "tag": "0021_enable_unaccent_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1787072484694,
+      "tag": "0022_account_recovery_activity",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1788337971295,
+      "tag": "0023_funny_captain_cross",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788391872443,
+      "tag": "0024_case_claimant_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1788470505088,
+      "tag": "0025_case_updates",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1788482909542,
+      "tag": "0026_demonic_sharon_ventura",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1788491287172,
+      "tag": "0027_nervous_gamma_corps",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1788495087247,
+      "tag": "0028_case_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1788538961336,
+      "tag": "0029_stiff_santa_claus",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1788544220025,
+      "tag": "0030_case_followers",
+      "breakpoints": true
+    }
+  ]
+}

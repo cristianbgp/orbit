@@ -1,0 +1,53 @@
+{
+  "name": "orbit",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Open-source workspace for legal studios to coordinate clients, projects, cases, tasks, events, and activity.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cristianbgp/orbit.git"
+  },
+  "homepage": "https://github.com/cristianbgp/orbit#readme",
+  "bugs": {
+    "url": "https://github.com/cristianbgp/orbit/issues"
+  },
+  "packageManager": "bun@1.4.0",
+  "engines": {
+    "bun": "1.4.x"
+  },
+  "scripts": {
+    "dev": "mprocs",
+    "dev:web": "bun run --cwd apps/web --env-file=.env dev",
+    "dev:api": "bun run --cwd apps/api --env-file=.env dev",
+    "auth:generate": "bun run --cwd apps/api --env-file=.env auth:generate",
+    "db:create": "bun run --cwd apps/api --env-file=.env db:create",
+    "db:generate": "bun run --cwd apps/api --env-file=.env db:generate",
+    "db:migrate": "bun run --cwd apps/api --env-file=.env db:migrate",
+    "db:push": "bun run --cwd apps/api --env-file=.env db:push",
+    "db:seed": "bun run --cwd apps/api --env-file=.env db:seed",
+    "db:setup": "bun run --cwd apps/api --env-file=.env db:setup",
+    "client:generate": "bun run --cwd apps/web --env-file=.env client:generate",
+    "api:generate": "bun run client:generate",
+    "api:check": "bun run api:generate && git diff --exit-code -- apps/web/src/lib/api/generated",
+    "help:generate": "bun run --cwd apps/api help:generate",
+    "help:check": "bun run help:generate && git diff --exit-code -- apps/api/src/help-assistant/blueprint-documents.generated.ts",
+    "install:apps": "bun install --cwd apps/web --frozen-lockfile && bun install --cwd apps/api --frozen-lockfile",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "bun run --cwd apps/web test && bun run --cwd apps/api test",
+    "typecheck": "bun run --cwd apps/web typecheck && bun run --cwd apps/api typecheck",
+    "build": "bun run help:generate && bun run --cwd apps/web --env-file=.env build && bun run --cwd apps/api build",
+    "build-web": "bun run --cwd apps/web --env-file=.env build",
+    "build-api": "bun run help:generate && bun run --cwd apps/api build",
+    "env:setup": "bun scripts/setup-env.ts",
+    "verify": "bun run format:check && bun run typecheck && bun run test && bun run build && bun run help:check"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.3",
+    "@types/node": "26.6.5",
+    "mprocs": "0.9.6",
+    "prettier": "3.9.10",
+    "prettier-plugin-tailwindcss": "0.8.1"
+  }
+}
