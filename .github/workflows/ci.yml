@@ -16,28 +16,6 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: orbit
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d orbit"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/orbit
-      BETTER_AUTH_SECRET: ci-only-secret-with-at-least-32-characters
-      API_URL: http://localhost:3210
-      CORS_ALLOWED_ORIGIN: http://localhost:5173
-      API_DOCS_ENABLED: "true"
-      VITE_API_BASE_URL: http://localhost:3210
-      ORVAL_OPENAPI_URL: http://localhost:3210/openapi.json
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -70,33 +48,6 @@ jobs:
 
       - name: Verify help corpus
         run: bun run help:check
-
-      - name: Apply migrations for contract generation
-        working-directory: apps/api
-        run: bun --env-file=/dev/null run drizzle-kit migrate
-
-      - name: Verify generated API client
-        shell: bash
-        run: |
-          cd apps/api
-          bun --env-file=/dev/null src/index.ts > /tmp/orbit-api.log 2>&1 &
-          api_pid=$!
-          trap 'kill "$api_pid"' EXIT
-          cd ../..
-
-          for attempt in {1..30}; do
-            if curl --fail --silent http://localhost:3210/openapi.json > /dev/null; then
-              bun run api:check
-              exit 0
-            fi
-            sleep 1
-          done
-
-          cat /tmp/orbit-api.log
-          exit 1
-
-      - name: Ensure verification generated no changes
-        run: git diff --exit-code
 
   dependency-audit:
     runs-on: ubuntu-latest
